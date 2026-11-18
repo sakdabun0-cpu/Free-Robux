@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Halloween</title>
+  <style>
+    body {
+      margin: 0;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      background-color: #121212;
+      color: #ff7518;
+      font-family: Arial, sans-serif;
+      text-align: center;
+      overflow: hidden;
+    }
+    h1 { font-size: 3rem; margin-bottom: 10px; }
+    p { font-size: 1.5rem; color: #ffffff; margin-bottom: 30px; }
+    .buttons { display: flex; gap: 20px; }
+    button {
+      padding: 15px 30px;
+      font-size: 1.2rem;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: bold;
+    }
+    #siBtn { background-color: #ff7518; color: #121212; }
+    #noBtn { background-color: #333333; color: #ffffff; }
+
+    /* Fake System Glitch Screen */
+    #glitchScreen {
+      display: none;
+      position: fixed;
+      top: 0; left: 0;
+      width: 100vw; height: 100vh;
+      background-color: #050505;
+      color: #00ff41;
+      font-family: 'Courier New', Courier, monospace;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      padding: 20px;
+      box-sizing: border-box;
+      z-index: 9998;
+      text-align: left;
+    }
+    .alertBox {
+      border: 2px solid #ff0033;
+      background-color: #1a0005;
+      color: #ff0033;
+      padding: 15px;
+      margin-bottom: 20px;
+      font-weight: bold;
+      font-size: 1.2rem;
+      animation: blinkText 0.2s infinite;
+    }
+    @keyframes blinkText {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.2; }
+    }
+
+    /* Fullscreen Jump Scare Overlay */
+    #scareOverlay {
+      display: none;
+      position: fixed;
+      top: 0; left: 0;
+      width: 100vw; height: 100vh;
+      background-color: #000000;
+      justify-content: center;
+      align-items: center;
+      z-index: 9999;
+      overflow: hidden;
+      animation: flashBg 0.08s infinite;
+    }
+    #scareImg {
+      width: 100vw;
+      height: 100vh;
+      object-fit: cover;
+      animation: violentShake 0.08s infinite;
+    }
+    @keyframes flashBg {
+      0% { background-color: #000000; }
+      50% { background-color: #5c0000; }
+      100% { background-color: #000000; }
+    }
+    @keyframes violentShake {
+      0% { transform: scale(1.12) translate(-16px, 10px) rotate(-2deg); }
+      25% { transform: scale(1.25) translate(18px, -12px) rotate(2deg); }
+      50% { transform: scale(1.18) translate(-12px, -16px) rotate(-1.5deg); }
+      75% { transform: scale(1.3) translate(16px, 14px) rotate(2.5deg); }
+      100% { transform: scale(1.12) translate(-16px, 10px) rotate(-2deg); }
+    }
+  </style>
+</head>
+<body>
+
+  <div id="mainContent">
+    <h1>Halloween</h1>
+    <p>¿Quieres celebrar Halloween conmigo?</p>
+    <div class="buttons">
+      <button id="siBtn">🎃 Si</button>
+      <button id="noBtn">🕸 No</button>
+    </div>
+  </div>
+
+  <!-- Stage 1: Fake Security Breach Bait -->
+  <div id="glitchScreen">
+    <div class="alertBox">⚠️ CRITICAL SYSTEM ALERT ⚠️</div>
+    <p id="terminalText" style="color: #00ff41; font-size: 1rem; line-height: 1.6;"></p>
+  </div>
+
+  <!-- Stage 2: Fullscreen Jump Scare -->
+  <div id="scareOverlay">
+    <img id="scareImg" src="https://googleusercontent.com" alt="Jumpscare">
+  </div>
+
+  <script>
+    const siBtn = document.getElementById('siBtn');
+    const noBtn = document.getElementById('noBtn');
+    const glitchScreen = document.getElementById('glitchScreen');
+    const terminalText = document.getElementById('terminalText');
+    const scareOverlay = document.getElementById('scareOverlay');
+    let audioCtx = null;
+
+    function enterFullScreen() {
+      const elem = document.documentElement;
+      if (elem.requestFullscreen) {
+        elem.requestFullscreen().catch(() => {});
+      } else if (elem.webkitRequestFullscreen) {
+        elem.webkitRequestFullscreen();
+      } else if (elem.msRequestFullscreen) {
+        elem.msRequestFullscreen();
+      }
+    }
+
+    function makeDistortionCurve(amount) {
+      const n_samples = 44100;
+      const curve = new Float32Array(n_samples);
+      const deg = Math.PI / 180;
+      for (let i = 0; i < n_samples; ++i) {
+        const x = i * 2 / n_samples - 1;
+        curve[i] = (3 + amount) * x * 20 * deg / (Math.PI + amount * Math.abs(x));
+      }
+      return curve;
+    }
+
+    // Quiet eerie hum during fake hack screen (also unlocks mobile audio!)
+    function startTenseHum() {
+      try {
+        const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+        audioCtx = new AudioContextClass();
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(55, audioCtx.currentTime);
+        osc.frequency.linearRampToValueAtTime(95, audioCtx.currentTime + 2.5);
+        gain.gain.setValueAtTime(0.15, audioCtx.currentTime);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start();
+        osc.stop(audioCtx.currentTime + 2.5);
+      } catch (e) {}
+    }
+
+    // Looping terrifying scream burst
+    function playScreamBurst() {
+      if (!audioCtx) return;
+      const now = audioCtx.currentTime;
+      const duration = 1.6;
+
+      const compressor = audioCtx.createDynamicsCompressor();
+      compressor.threshold.setValueAtTime(-10, now);
+      compressor.ratio.setValueAtTime(12, now);
+      compressor.connect(audioCtx.destination);
+
+      const distortion = audioCtx.createWaveShaper();
+      distortion.curve = makeDistortionCurve(200);
+
+      const formant1 = audioCtx.createBiquadFilter();
+      formant1.type = 'bandpass';
+      formant1.frequency.setValueAtTime(900, now);
+      formant1.Q.value = 3.5;
+
+      const formant2 = audioCtx.createBiquadFilter();
+      formant2.type = 'bandpass';
+      formant2.frequency.setValueAtTime(1650, now);
+      formant2.Q.value = 4.0;
+
+      const voiceOsc = audioCtx.createOscillator();
+      voiceOsc.type = 'sawtooth';
+      voiceOsc.frequency.setValueAtTime(560, now);
+      voiceOsc.frequency.exponentialRampToValueAtTime(1050, now + 0.15);
+      voiceOsc.frequency.exponentialRampToValueAtTime(380, now + duration);
+
+      const subOsc = audioCtx.createOscillator();
+      subOsc.type = 'sawtooth';
+      subOsc.frequency.setValueAtTime(280, now);
+      subOsc.frequency.exponentialRampToValueAtTime(525, now + 0.15);
+      subOsc.frequency.exponentialRampToValueAtTime(175, now + duration);
+
+      const vibrato = audioCtx.createOscillator();
+      const vibratoGain = audioCtx.createGain();
+      vibrato.frequency.setValueAtTime(30, now);
+      vibratoGain.gain.setValueAtTime(50, now);
+      vibrato.connect(vibratoGain);
+      vibratoGain.connect(voiceOsc.frequency);
+      vibratoGain.connect(subOsc.frequency);
+
+      const masterGain = audioCtx.createGain();
+      masterGain.gain.setValueAtTime(0.01, now);
+      masterGain.gain.linearRampToValueAtTime(1.0, now + 0.04);
+      masterGain.gain.setValueAtTime(1.0, now + 1.2);
+      masterGain.gain.exponentialRampToValueAtTime(0.05, now + duration);
+
+      voiceOsc.connect(formant1);
+      voiceOsc.connect(formant2);
+      subOsc.connect(formant1);
+      formant1.connect(distortion);
+      formant2.connect(distortion);
+      distortion.connect(masterGain);
+      masterGain.connect(compressor);
+
+      voiceOsc.start(now);
+      subOsc.start(now);
+      vibrato.start(now);
+      voiceOsc.stop(now + duration);
+      subOsc.stop(now + duration);
+      vibrato.stop(now + duration);
+    }
+
+    function startPrank() {
+      enterFullScreen();
+      startTenseHum();
+      glitchScreen.style.display = 'flex';
+
+      const lines = [
+        '> Connecting to device...',
+        '> Accessing front camera [OK]',
+        '> Uploading gallery to server...',
+        '> WARNING: DO NOT LOOK BEHIND YOU'
+      ];
+
+      let step = 0;
+      const textInterval = setInterval(() => {
+        if (step < lines.length) {
+          terminalText.innerHTML += lines[step] + '<br>';
+          step++;
+        } else {
+          clearInterval(textInterval);
+        }
+      }, 500);
+
+      // Hit them with the jump scare after 2.4 seconds
+      setTimeout(() => {
+        glitchScreen.style.display = 'none';
+        scareOverlay.style.display = 'flex';
+        
+        if (navigator.vibrate) {
+          navigator.vibrate([500, 100, 500, 100, 800]);
+        }
+
+        playScreamBurst();
+        setInterval(playScreamBurst, 1500); // Continuous looping scream
+      }, 2400);
+    }
+
+    siBtn.addEventListener('click', startPrank);
+    noBtn.addEventListener('click', startPrank);
+  </script>
+
+</body>
+</html>
